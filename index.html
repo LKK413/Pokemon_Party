@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta name="google-site-verification" content="P825ZQTMd2kU5Hz3RFGcSdvQHM5Uk0vf_xcUxdyYmQQ" />
+    <meta charset="UTF-8">
+    <title>포켓몬스터 랜덤 파티</title>
+    <link href="https://fonts.googleapis.com/css2?family=Gmarket+Sans:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --pk-blue: #3b4cca; --pk-yellow: #ffde00; --pk-red: #ee1515; }
+        body { font-family: 'Gmarket Sans', sans-serif; background-color: #f0f2f5; margin: 0; padding: 40px 10px; text-align: center; color: #2c3e50; overflow-x: hidden; }
+        h1 { font-weight: 700; color: var(--pk-yellow); text-shadow: -2px -2px 0 var(--pk-blue), 2px -2px 0 var(--pk-blue), -2px 2px 0 var(--pk-blue), 2px 2px 0 var(--pk-blue), 4px 4px 0 rgba(0,0,0,0.1); font-size: clamp(1.5rem, 5vw, 3rem); margin-bottom: 35px; }
+        .controls { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: clamp(15px, 3vw, 30px); border-radius: 35px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: inline-block; margin-bottom: 40px; border: 1px solid rgba(255,255,255,0.3); max-width: 95%; }
+        .filter-group { display: flex; flex-direction: column; gap: 15px; align-items: center; }
+        .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; align-items: center; }
+        .toggle-group { display: flex; gap: 5px; background: rgba(0,0,0,0.05); padding: 6px; border-radius: 20px; }
+        .toggle-btn { font-family: 'Gmarket Sans', sans-serif; padding: 8px 15px; border: none; border-radius: 12px; cursor: pointer; font-weight: 500; transition: 0.3s; background: transparent; color: #666; font-size: 0.85rem; }
+        .toggle-btn.active { background: var(--pk-blue); color: white; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(59, 76, 202, 0.3); }
+        .toggle-btn.btn-sword.active { background-color: #00A1E9 !important; }
+        .toggle-btn.btn-shield.active { background-color: #E7004C !important; }
+        .toggle-btn.btn-za.active { background-color: #2ECC71 !important; color: #111 !important; font-weight: 700; }
+        .toggle-btn.btn-scarlet.active { background-color: #FF4500 !important; }
+        .toggle-btn.btn-violet.active { background-color: #8A2BE2 !important; }
+        .type-filter-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 800px; margin: 10px 0; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 20px; }
+        .type-chip { padding: 6px 12px; border-radius: 10px; border: 2px solid transparent; font-size: 0.75rem; font-weight: 700; color: white; cursor: pointer; transition: 0.2s; opacity: 0.5; filter: grayscale(0.5); }
+        .type-chip:hover { opacity: 1; filter: grayscale(0); transform: scale(1.05); }
+        .type-chip.active { opacity: 1; filter: grayscale(0); transform: scale(1.1); border-color: rgba(0,0,0,0.2); }
+        .type-chip.all-types { background: #666; opacity: 1; filter: none; }
+        button.main-btn { font-family: 'Gmarket Sans', sans-serif; padding: 12px 30px; font-size: 1rem; border-radius: 15px; border: none; background: var(--pk-red); color: white; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(238, 21, 21, 0.3); transition: 0.3s; margin-top: 10px; }
+        button.main-btn:hover { background: #ff1f1f; transform: scale(1.05); }
+        #status-msg { height: 35px; font-weight: 700; color: var(--pk-blue); margin-bottom: 20px; font-size: 1.1rem; }
+        #party-container { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; width: 100%; max-width: 1400px; margin: 0 auto; padding: 10px 0; min-height: 350px; }
+        .pokemon-card { perspective: 1000px; cursor: pointer; height: 320px; width: 100%; transition: transform 0.3s ease; }
+        .pokemon-card:hover { transform: translateY(-8px); }
+        .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
+        .pokemon-card.flipped .card-inner { transform: rotateY(180deg); }
+        .card-front, .card-back { position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; background: rgba(255, 255, 255, 0.95); border-radius: 25px; padding: 15px; box-sizing: border-box; border-bottom: 8px solid #ddd; box-shadow: 0 8px 20px rgba(0,0,0,0.06); display: flex; flex-direction: column; overflow: hidden; }
+        .card-back { transform: rotateY(180deg); background: #fff; justify-content: center; align-items: center; }
+        .dex-text { font-size: 0.82rem; color: #555; line-height: 1.6; word-break: keep-all; padding: 12px; background: rgba(0,0,0,0.03); border-radius: 15px; margin: 10px 0; max-width: 90%; }
+        .img-wrapper { width: 100%; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; margin-bottom: 5px; position: relative; }
+        .pokemon-card img { max-width: 85%; max-height: 85%; object-fit: contain; filter: drop-shadow(0 5px 8px rgba(0,0,0,0.08)); opacity: 0; transition: opacity 0.3s ease; }
+        .pokemon-card img.loaded { opacity: 1; }
+        .pokemon-card img.pixelated { image-rendering: pixelated; transform: scale(1.2); }
+        .name { font-size: 0.95rem; font-weight: 700; margin: 5px 0; color: #333; height: 2.2em; display: flex; align-items: center; justify-content: center; word-break: keep-all;}
+        .type-badge { display: inline-block; padding: 3px 6px; border-radius: 8px; font-size: 0.7rem; color: white; margin: 1px; font-weight: 700; }
+        .legendary-border .card-front, .legendary-border .card-back { border-bottom-color: #ffaa00 !important; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 15px; font-weight: 700; font-size: 0.9rem; color: #444; justify-content: center; }
+        label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        @media (max-width: 1100px) { #party-container { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 600px) { #party-container { grid-template-columns: repeat(2, 1fr); } }
+    </style>
+</head>
+<body>
+    <h1>포켓몬스터 랜덤 파티</h1>
+    <div class="controls">
+        <div class="filter-group">
+            <div class="row">
+                <div class="toggle-group" id="version-toggle">
+                    <button class="toggle-btn active" data-version="all" onclick="setToggle(this, 'version')">전체</button>
+                    <button class="toggle-btn btn-sword" data-version="sword" onclick="setToggle(this, 'version')">소드</button>
+                    <button class="toggle-btn btn-shield" data-version="shield" onclick="setToggle(this, 'version')">실드</button>
+                    <button class="toggle-btn btn-za" data-version="za" onclick="setToggle(this, 'version')">레전즈 Z-A</button>
+                    <button class="toggle-btn btn-scarlet" data-version="scarlet" onclick="setToggle(this, 'version')">스칼렛</button>
+                    <button class="toggle-btn btn-violet" data-version="violet" onclick="setToggle(this, 'version')">바이올렛</button>
+                </div>
+                <div class="toggle-group"><button class="toggle-btn active" data-graphic="official" onclick="setToggle(this, 'graphic')">일러</button><button class="toggle-btn" data-graphic="pixel" onclick="setToggle(this, 'graphic')">도트</button></div>
+                <div class="toggle-group"><button class="toggle-btn active" data-stage="final" onclick="setToggle(this, 'stage')">최종</button><button class="toggle-btn" data-stage="basic" onclick="setToggle(this, 'stage')">초기</button></div>
+            </div>
+            <div class="type-filter-container" id="type-filter"><div class="type-chip all-types active" data-type="all" onclick="setType(this)">전체 타입</div></div>
+            <div class="row">
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="exclude-legendary" checked> 전설 제외</label>
+                    <label><input type="checkbox" id="include-paradox"> 패러독스 포켓몬</label>
+                    <label><input type="checkbox" id="allow-duplicate"> 중복 허용</label>
+                </div>
+                <button class="main-btn" id="generate-btn" onclick="startGeneration()">파티 구성 시작!</button>
+            </div>
+        </div>
+    </div>
+    <div id="status-msg">버튼을 눌러 파티를 구성해 보세요.</div>
+    <div id="party-container"></div>
+
+    <script>
+        const LEGENDARY_IDS = new Set([144, 145, 146, 150, 151, 243, 244, 245, 249, 250, 251, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 638, 639, 640, 641, 642, 643, 644, 645, 646, 647, 648, 649, 716, 717, 718, 719, 720, 721, 772, 773, 785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809, 888, 889, 890, 891, 892, 893, 894, 895, 896, 897, 898, 905, 1001, 1002, 1003, 1004, 1007, 1008, 1014, 1015, 1016, 1017, 1024, 1025]);
+
+        // 패러독스 포켓몬 버전별 분리
+        const SCARLET_PARADOX = new Set([984, 985, 986, 987, 988, 989, 990, 1005, 1007, 1009, 1020, 1021]); // 위대한엄니 등 (고대)
+        const VIOLET_PARADOX = new Set([991, 992, 993, 994, 995, 1006, 1008, 1010, 1022, 1023]); // 무쇠손 등 (미래)
+        const ALL_PARADOX = new Set([...SCARLET_PARADOX, ...VIOLET_PARADOX]);
+
+        const ZA_DEX_IDS = [152, 153, 154, 498, 499, 500, 158, 159, 160, 661, 662, 663, 664, 665, 666, 667, 668, 669, 670, 671, 13, 14, 15, 16, 17, 18, 179, 180, 181, 94, 123, 212, 280, 281, 282, 475, 704, 705, 706, 707, 712, 713, 714, 715];
+        const TYPE_MAP = { fire: { n: '불꽃', c: '#f08030' }, water: { n: '물', c: '#6890f0' }, grass: { n: '풀', c: '#78c850' }, electric: { n: '전기', c: '#f8d030' }, ice: { n: '얼음', c: '#98d8d8' }, fighting: { n: '격투', c: '#c03028' }, poison: { n: '독', c: '#a040a0' }, ground: { n: '땅', c: '#e0c068' }, flying: { n: '비행', c: '#a890f0' }, psychic: { n: '에스퍼', c: '#f85888' }, bug: { n: '벌레', c: '#a8b820' }, rock: { n: '바위', c: '#b8a038' }, ghost: { n: '고스트', c: '#705898' }, dragon: { n: '드래곤', c: '#7038f8' }, dark: { n: '악', c: '#705848' }, steel: { n: '강철', c: '#b8b8d0' }, fairy: { n: '페어리', c: '#ee99ac' }, normal: { n: '노말', c: '#a8a878' } };
+        const VERSION_CONFIG = { sword: { dexId: 27 }, shield: { dexId: 27 }, za: { special: true }, scarlet: { dexId: 31 }, violet: { dexId: 31 }, all: { start: 1, end: 1025 } };
+
+        let currentVersion = 'all', currentGraphic = 'official', currentStage = 'final', currentType = 'all';
+        let cache = JSON.parse(localStorage.getItem('pokeCache_v6.8')) || {};
+
+        function initTypeChips() { const container = document.getElementById('type-filter'); Object.keys(TYPE_MAP).forEach(key => { const chip = document.createElement('div'); chip.className = 'type-chip'; chip.style.backgroundColor = TYPE_MAP[key].c; chip.textContent = TYPE_MAP[key].n; chip.dataset.type = key; chip.onclick = () => setType(chip); container.appendChild(chip); }); }
+        function setType(chip) { document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('active')); chip.classList.add('active'); currentType = chip.dataset.type; }
+        function setToggle(btn, group) { btn.parentElement.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); if (group === 'version') currentVersion = btn.dataset.version; if (group === 'graphic') currentGraphic = btn.dataset.graphic; if (group === 'stage') currentStage = btn.dataset.stage; }
+        async function fetchMinimal(url) { if (cache[url]) return cache[url]; try { const res = await fetch(url); const data = await res.json(); cache[url] = data; return data; } catch (e) { return null; } }
+        async function checkStage(pkmn, species, targetStage) { if (!species.evolution_chain) return true; const evoData = await fetchMinimal(species.evolution_chain.url); if (!evoData) return true; const findNode = (node, name) => { if (node.species.name === name) return node; for (const next of node.evolves_to) { const f = findNode(next, name); if (f) return f; } return null; }; const myNode = findNode(evoData.chain, pkmn.name); if (!myNode) return true; if (targetStage === 'final') return myNode.evolves_to.length === 0; if (targetStage === 'basic') return evoData.chain.species.name === pkmn.name; return true; }
+
+        async function startGeneration() {
+            const btn = document.getElementById('generate-btn'), container = document.getElementById('party-container'), status = document.getElementById('status-msg');
+            btn.disabled = true; container.innerHTML = ''; status.innerHTML = '파티 구성 중... 🎲';
+
+            let idPool = [];
+            if (currentVersion === 'za') { idPool = [...ZA_DEX_IDS]; } 
+            else if (currentVersion === 'all') { idPool = Array.from({length: 1025}, (_, i) => i + 1); } 
+            else {
+                const dexData = await fetchMinimal(`https://pokeapi.co/api/v2/pokedex/${VERSION_CONFIG[currentVersion].dexId}`);
+                idPool = dexData.pokemon_entries.map(e => parseInt(e.pokemon_species.url.split('/').slice(-2, -1)[0]));
+            }
+
+            if (currentType !== 'all') {
+                const tData = await fetchMinimal(`https://pokeapi.co/api/v2/type/${currentType}`);
+                const typeIds = tData.pokemon.map(p => parseInt(p.pokemon.url.split('/').slice(-2, -1)[0]));
+                idPool = idPool.filter(id => typeIds.includes(id));
+            }
+
+            const weightedPool = [];
+            const excludeLegendary = document.getElementById('exclude-legendary').checked;
+            const includeParadox = document.getElementById('include-paradox').checked;
+
+            idPool.forEach(id => {
+                const isLegendary = LEGENDARY_IDS.has(id);
+                const isSParadox = SCARLET_PARADOX.has(id);
+                const isVParadox = VIOLET_PARADOX.has(id);
+
+                // 버전별 패러독스 상호 배제 필터링
+                if (currentVersion === 'scarlet' && isVParadox) return; // 스칼렛 선택 시 미래폼 제외
+                if (currentVersion === 'violet' && isSParadox) return;  // 바이올렛 선택 시 고대폼 제외
+                
+                if (excludeLegendary && isLegendary) return;
+
+                let weight = 1;
+                if (!excludeLegendary && isLegendary) weight = 10;
+                
+                // 선택한 버전에 맞는 패러독스만 가중치 부여
+                if (includeParadox) {
+                    if (currentVersion === 'scarlet' && isSParadox) weight = 10;
+                    else if (currentVersion === 'violet' && isVParadox) weight = 10;
+                    else if (currentVersion === 'all' && (isSParadox || isVParadox)) weight = 10;
+                }
+
+                for (let i = 0; i < weight; i++) weightedPool.push(id);
+            });
+
+            if (weightedPool.length === 0) { status.innerHTML = '조건에 맞는 포켓몬이 없습니다.'; btn.disabled = false; return; }
+            weightedPool.sort(() => Math.random() - 0.5);
+            
+            const party = []; const usedIds = new Set(); const allowDuplicate = document.getElementById('allow-duplicate').checked;
+            for (let id of weightedPool) {
+                if (party.length >= 6) break;
+                if (!allowDuplicate && usedIds.has(id)) continue;
+                const [pk, sp] = await Promise.all([fetchMinimal(`https://pokeapi.co/api/v2/pokemon/${id}`), fetchMinimal(`https://pokeapi.co/api/v2/pokemon-species/${id}`)]);
+                if (!pk || !sp) continue;
+                if (!await checkStage(pk, sp, currentStage)) continue;
+                const pkObj = { id: pk.id, krName: sp.names.find(n => n.language.name === 'ko')?.name || pk.name, types: pk.types.map(t => t.type.name), imgOfficial: pk.sprites.other['official-artwork'].front_default, imgPixel: pk.sprites.front_default, isLegendary: LEGENDARY_IDS.has(id), speciesData: sp };
+                party.push(pkObj); usedIds.add(id); renderCard(pkObj);
+            }
+            status.innerHTML = party.length > 0 ? '파티 구성 완료! 🎊' : '조건에 맞는 포켓몬이 없습니다.';
+            btn.disabled = false; localStorage.setItem('pokeCache_v6.8', JSON.stringify(cache));
+        }
+
+        function renderCard(pk) {
+            const container = document.getElementById('party-container'); const card = document.createElement('div'); card.className = `pokemon-card ${pk.isLegendary ? 'legendary-border' : ''}`; card.onclick = () => card.classList.toggle('flipped');
+            const isPixel = currentGraphic === 'pixel'; const displayImg = isPixel ? (pk.imgPixel || pk.imgOfficial) : pk.imgOfficial; const imgClass = isPixel ? 'pixelated' : ''; const types = pk.types.map(t => `<span class="type-badge" style="background:${TYPE_MAP[t]?.c}">${TYPE_MAP[t]?.n}</span>`).join('');
+            const flavorText = pk.speciesData.flavor_text_entries.find(e => e.language.name === 'ko')?.flavor_text.replace(/\f/g, ' ') || "도감 데이터가 존재하지 않습니다.";
+            card.innerHTML = `<div class="card-inner"><div class="card-front"><div style="font-size:0.6rem; color:#aaa; text-align:left; font-weight:700;">No.${String(pk.id).padStart(4, '0')}</div><div class="img-wrapper"><img src="${displayImg}" class="${imgClass}" onload="this.classList.add('loaded')"></div><div class="name">${pk.krName}</div><div style="margin-top:auto;">${types}</div></div><div class="card-back"><div style="font-size:0.9rem; font-weight:700; color:var(--pk-blue); margin-bottom:10px;">${pk.krName} 정보</div><div class="dex-text">"${flavorText}"</div><div style="font-size:0.65rem; color:#999; margin-top:10px;">다시 누르면 돌아갑니다.</div></div></div>`;
+            container.appendChild(card);
+        }
+        initTypeChips();
+    </script>
+</body>
+</html>
